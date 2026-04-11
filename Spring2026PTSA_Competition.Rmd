@@ -1,0 +1,324 @@
+
+
+---
+title: "Energy Usage Forecasting Competition 2026"
+author: "Abrao Soares Pereira and Mingjie Wei"
+date: "Spring 2026"
+output: pdf_document
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=80), tidy=FALSE)
+```
+
+```{r load packages, message=FALSE, warning=FALSE}
+library(readxl)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(Kendall)
+library(tseries)
+library(outliers)
+library(tidyverse)
+library(cowplot)
+library(smooth)
+```
+
+## Load Datasets
+
+```{r import data, message=FALSE}
+raw_load_data <- read_excel(
+  "~/Documents/ENVIRON 797 - TSA Spring 2026/Forecasting2026/data/load.xlsx")
+
+raw_temperature_data <- read_excel(
+  "~/Documents/ENVIRON 797 - TSA Spring 2026/Forecasting2026/data/temperature.xlsx")
+
+raw_relativehumidity_data <- read_excel(
+  "~/Documents/ENVIRON 797 - TSA Spring 2026/Forecasting2026/data/relative_humidity.xlsx")
+
+submission_template <- read.csv(
+  "~/Documents/ENVIRON 797 - TSA Spring 2026/Forecasting2026/data/submission_template.csv")
+```
+
+## Process Datasets
+
+```{r process data, message=FALSE}
+# daily average across 24 hours
+load_processed <- raw_load_data %>%
+  mutate(
+    date       = as.Date(date),
+    daily_load = rowMeans(across(starts_with("h")), na.rm = TRUE)
+  ) %>%
+  select(date, daily_load) %>%
+  arrange(date)
+
+# Temperature daily mean and max
+temp_cols <- grep("^t_ws", names(raw_temperature_data), value = TRUE)
+
+temp_processed <- raw_temperature_data %>%
+  mutate(
+    date     = as.Date(date),
+    avg_temp = rowMeans(across(all_of(temp_cols)), na.rm = TRUE)
+  ) %>%
+  filter(!is.na(date)) %>%
+  group_by(date) %>%
+  summarise(
+    temp_mean = mean(avg_temp, na.rm = TRUE),
+    temp_max  = max(avg_temp,  na.rm = TRUE),
+    .groups   = "drop"
+  )
+
+# Humidity daily mean
+rh_cols <- grep("^rh_ws", names(raw_relativehumidity_data), value = TRUE)
+
+humid_processed <- raw_relativehumidity_data %>%
+  mutate(
+    date   = as.Date(date),
+    avg_rh = rowMeans(across(all_of(rh_cols)), na.rm = TRUE)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    rh_mean = mean(avg_rh, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Verify all three datasets
+head(load_processed)
+head(temp_processed)
+head(humid_processed)
+summary(load_processed)
+```
+
+## Create Time Series Object
+
+```{r ts object, message=FALSE}
+#Create time series object
+ts_load <- msts(
+  load_processed$daily_load,
+  seasonal.periods = c(7, 365),
+  start = c(2005, 1)
+)
+```
+
+## Initial Plots
+
+```{r initial plots, message=FALSE}
+# Time series plot
+autoplot(ts_load) +
+  labs(title = "Daily Average Electricity Load 2005-2011",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+# ACF and PACF plots
+par(mfrow = c(1, 2))
+Acf(ts_load,  lag = 40, plot = TRUE, main = "ACF - Daily Load")
+Pacf(ts_load, lag = 40,              main = "PACF - Daily Load")
+par(mfrow = c(1, 1))
+```
+
+## Train/Test Split
+
+```{r train test split, message=FALSE}
+# Train = Jan 2005 to Jun 2010
+# Test  = Jul 2010 (back-test validation)
+train_data <- sum(load_processed$date <= as.Date("2010-06-30"))
+test_data  <- sum(load_processed$date >= as.Date("2010-07-01") &
+                  load_processed$date <= as.Date("2010-07-31"))
+
+cat("Training rows:", train_data, "\n")
+cat("Test rows:    ", test_data,  "\n")
+
+# Subset ts object into train and test
+timeseries_train_load <- subset(ts_load, end = train_data)
+timeseries_test_load  <- subset(ts_load,
+                                start = train_data + 1,
+                                end   = train_data + test_data)
+
+# MAPE value
+MAPE <- function(actual, predicted) {
+  mean(abs(actual - predicted) / actual) * 100
+}
+
+# Dates for July 2011
+dates_july2011 <- seq.Date(as.Date("2011-07-01"),
+                           as.Date("2011-07-31"),
+                           by = "day")
+```
+
+## Model 1 — Seasonal Naive
+
+```{r model1 snaive, message=FALSE}
+#Naive model test
+SNAIVE_fit <- snaive(timeseries_train_load, h = test_data)
+
+autoplot(SNAIVE_fit) +
+  autolayer(timeseries_test_load,
+            series    = "Actual Jul 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 1: Seasonal Naive — July 2010 Back-test",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(SNAIVE_fit, timeseries_test_load)
+MAPE(as.numeric(timeseries_test_load),
+     as.numeric(SNAIVE_fit$mean))
+```
+
+## Model 2 — SARIMA
+
+```{r model2 sarima, message=FALSE}
+# SARIMA model pattern
+ts_load_weekly <- ts(load_processed$daily_load,
+                     frequency = 7,
+                     start     = c(2005, 1))
+
+timeseries_train_weekly <- subset(ts_load_weekly, end = train_data)
+timeseries_test_weekly  <- subset(ts_load_weekly,
+                                  start = train_data + 1,
+                                  end   = train_data + test_data)
+
+# Use auto.arima to organize data
+SARIMA_fitting <- auto.arima(timeseries_train_weekly,
+                             stepwise      = TRUE,
+                             approximation = TRUE)
+print(SARIMA_fitting)
+checkresiduals(SARIMA_fitting)
+
+SARIMA_forecasting <- forecast(object = SARIMA_fitting, h = test_data)
+
+autoplot(SARIMA_forecasting) +
+  autolayer(timeseries_test_weekly,
+            series    = "Actual July 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 2: SARIMA — July 2010 Back-test",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(SARIMA_forecasting, timeseries_test_weekly)
+MAPE(as.numeric(timeseries_test_weekly),
+     as.numeric(SARIMA_forecasting$mean))
+```
+
+## Model 3 — SARIMA + Temperature (ARIMAX)
+
+```{r model3 arimax, message=FALSE}
+# Merge load and temperature, filter to July only
+july_data <- load_processed %>%
+  left_join(temp_processed, by = "date") %>%
+  filter(month(date) == 7) %>%
+  mutate(
+    temp_mean_sq = temp_mean ^ 2,
+    is_weekend   = as.numeric(wday(date) %in% c(1, 7))
+  )
+
+# ts object for July load only
+ts_july_load <- ts(july_df$daily_load, frequency = 31)
+
+# External regressor matrix — must use cbind() not data.frame()
+xreg_july <- cbind(
+  temp_mean    = july_data$temp_mean,
+  temp_mean_sq = july_data$temp_mean_sq,
+  is_weekend   = july_data$is_weekend
+)
+
+# Train = July 2005-2009 (5 years x 31 days = 155 rows)
+# Test  = July 2010 (31 rows)
+n_july_train <- 31 * 5
+n_july_test  <- 31
+
+ts_july_train <- subset(ts_july_load, end = n_july_train)
+ts_july_test  <- subset(ts_july_load, start = n_july_train + 1)
+xreg_train    <- xreg_july[1:n_july_train, ]
+xreg_test     <- xreg_july[(n_july_train + 1):nrow(july_data), ]
+
+# Fit ARIMAX — auto.arima handles ARIMA orders, xreg adds temperature
+ARIMAX_fitting <- auto.arima(ts_july_train,
+                             xreg          = xreg_train,
+                             seasonal      = TRUE,
+                             stepwise      = TRUE,
+                             approximation = TRUE)
+print(ARIMAX_fitting)
+checkresiduals(ARIMAX_fitting)
+
+ARIMAX_forecasting <- forecast(object = ARIMAX_fitting,
+                               xreg   = xreg_test,
+                               h      = n_july_test)
+
+autoplot(ARIMAX_forecasting) +
+  autolayer(ts_july_test,
+            series    = "Actual July 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 3: ARIMAX + Temperature — July 2010 Back-test",
+       x     = "Day",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(ARIMAX_forecasting, ts_july_test)
+MAPE(as.numeric(ts_july_test),
+     as.numeric(ARIMAX_forecasting$mean))
+```
+
+## Final Forecast — July 2011
+
+```{r final forecast, message=FALSE}
+# Retrain best model (ARIMAX) on ALL July data 2005-2010
+ARIMAX_final <- auto.arima(ts_july_load,
+                           xreg          = xreg_july,
+                           seasonal      = TRUE,
+                           stepwise      = TRUE,
+                           approximation = TRUE)
+print(ARIMAX_final)
+
+# Forecast July 2011 temperatures 
+tmean_2009 <- july_df %>% filter(year(date) == 2009) %>% pull(temp_mean)
+tmean_2010 <- july_df %>% filter(year(date) == 2010) %>% pull(temp_mean)
+tmean_2011 <- (tmean_2009 + tmean_2010) / 2
+
+# Weekend flags for July 2011
+wknd_2011 <- as.numeric(wday(dates_july2011) %in% c(1, 7))
+
+# Build xreg for forecast period 
+xreg_2011 <- cbind(
+  temp_mean    = tmean_2011,
+  temp_mean_sq = tmean_2011 ^ 2,
+  is_weekend   = wknd_2011
+)
+
+# Generate final forecast
+ARIMAX_fc_2011 <- forecast(object = ARIMAX_final,
+                           xreg   = xreg_2011,
+                           h      = 31)
+
+autoplot(ARIMAX_fc_2011) +
+  labs(title = "Model 3: ARIMAX Final Forecast — July 2011",
+       x     = "Day of July",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+# Build submission
+submission_final <- data.frame(
+  date = format(dates_july2011, "%Y-%m-%d"),
+  load = round(as.numeric(ARIMAX_fc_2011$mean), 2)
+)
+
+# Verify before saving
+cat("Row count:", nrow(submission_final), "\n")
+cat("Load range:", round(range(submission_final$load), 0), "\n")
+
+print(submission_final)
+
+write.csv(submission_final,
+          "./output/submission_sunday11_model.csv",
+          row.names = FALSE)
+
+```
+````
+
