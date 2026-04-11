@@ -1,5 +1,0 @@
----
-title: "Naive_Model"
-output: html_document
----
-
