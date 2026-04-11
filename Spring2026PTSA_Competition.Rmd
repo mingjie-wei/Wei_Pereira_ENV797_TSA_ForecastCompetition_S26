@@ -320,5 +320,113 @@ write.csv(submission_final,
           row.names = FALSE)
 
 ```
-````
+
+
+## TBATS
+```{r}
+# Back-test train on 2005-Jun 2010, test on Jul 2010
+TBATS_fit      <- tbats(timeseries_train_load)
+TBATS_forecast <- forecast(object = TBATS_fit, h = test_data)
+
+autoplot(TBATS_forecast) +
+  autolayer(timeseries_test_load,
+            series    = "Actual July 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 3: TBATS — July 2010 Back-test",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(TBATS_forecast, timeseries_test_load)
+MAPE(as.numeric(timeseries_test_load),
+     as.numeric(TBATS_forecast$mean))
+
+# Final forecast
+TBATS_final   <- tbats(ts_load)
+TBATS_fc_2011 <- forecast(object = TBATS_final, h = 31)
+
+autoplot(TBATS_fc_2011) +
+  labs(title = "TBATS Final Forecast — July 2011",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+# Verify submission
+submission_tbats <- data.frame(
+  date = format(dates_july2011, "%Y-%m-%d"),
+  load = round(as.numeric(TBATS_fc_2011$mean), 2)
+)
+
+cat("Row count:", nrow(submission_tbats), "\n")
+cat("Load range:", round(range(submission_tbats$load), 0), "\n")
+print(submission_tbats)
+
+write.csv(submission_tbats,
+          "./output/submission_tbats02.csv",
+          row.names = FALSE)
+
+
+```
+
+
+## STL + ETS
+
+```{r}
+# Model 4: STL + ETS
+STLF_fit <- stlf(timeseries_train_load, h = test_data)
+
+# Plot
+autoplot(STLF_fit) +
+  autolayer(timeseries_test_load,
+            series    = "Actual July 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 4: STL+ETS — July 2010 Back-test",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(STLF_fit, timeseries_test_load)
+MAPE(as.numeric(timeseries_test_load),
+     as.numeric(STLF_fit$mean))
+
+
+```
+
+
+## NNETAR
+
+```{r}
+#NNETAR model
+NNETAR_fit <- nnetar(timeseries_train_load)
+
+NNETAR_forecast <- forecast(object = NNETAR_fit, h = test_data)
+
+# Plot
+autoplot(NNETAR_forecast) +
+  autolayer(timeseries_test_load,
+            series    = "Actual July 2010",
+            color     = "black",
+            linewidth = 0.8) +
+  labs(title = "Model 5: NNETAR — July 2010 Back-test",
+       x     = "Time",
+       y     = "Average Hourly Load (Wh)") +
+  theme_minimal()
+
+accuracy(NNETAR_forecast, timeseries_test_load)
+MAPE(as.numeric(timeseries_test_load),
+     as.numeric(NNETAR_forecast$mean))
+```
+
+
+
+
+
+
+
+
+
+
+
 
