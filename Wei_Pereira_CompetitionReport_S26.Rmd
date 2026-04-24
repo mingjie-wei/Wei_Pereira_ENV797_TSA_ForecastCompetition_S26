@@ -46,9 +46,9 @@ This project aims to forecast daily residential electricity demand for July 2011
 
 Three datasets are provided for the competition:
 
-- **Load data:** hourly electricity demand (Wh) for a single residential meter from January 2005 to June 2011.
-- **Temperature data:** hourly temperature readings (°F) from nearby weather stations covering the same period.
-- **Humidity data:** hourly relative humidity readings (%) from nearby weather stations covering the same period.
+-   **Load data:** hourly electricity demand (Wh) for a single residential meter from January 2005 to June 2011.
+-   **Temperature data:** hourly temperature readings (°F) from nearby weather stations covering the same period.
+-   **Humidity data:** hourly relative humidity readings (%) from nearby weather stations covering the same period.
 
 The load series is the target variable. Temperature and humidity are optional external predictors.
 
@@ -181,7 +181,7 @@ autoplot(mstl(daily_ts)) +
 
 ### Autocorrelation Structure (ACF and PACF)
 
-The ACF and PACF are computed on the **training series** (through 2010-06-30) to avoid look-ahead leakage. Lags extend to 56 days (~8 weeks) to reveal the weekly periodicity at multiples of lag 7.
+The ACF and PACF are computed on the **training series** (through 2010-06-30) to avoid look-ahead leakage. Lags extend to 56 days (\~8 weeks) to reveal the weekly periodicity at multiples of lag 7.
 
 ```{r eda-acf, fig.cap="Sample ACF of daily load (training period 2005--2010-06-30, lags 1--56). Dashed lines mark the 95\\% confidence bounds under the null of no autocorrelation."}
 y_tr_eda <- ts(
@@ -212,11 +212,11 @@ ggplot(daily, aes(x = temp_day, y = load_day)) +
 
 ### Summary of Key Patterns
 
-- **Trend:** The MSTL trend component reveals a broadly stable mean load over 2005–2011 with no strong long-run drift, though mild inter-year fluctuations are visible, likely reflecting weather variability across years rather than a structural change in consumption behavior.
-- **Annual seasonality:** Load peaks sharply in summer (June–August), consistent with air-conditioning demand, and shows a secondary elevation in winter (December–February) attributable to heating and reduced daylight hours. The monthly boxplot confirms that July is among the highest-load months, making it a challenging forecast target with elevated and variable demand.
-- **Weekly seasonality:** The day-of-week bar chart shows consistently higher load on weekdays (Monday–Friday) relative to weekends, reflecting reduced commercial and occupational activity on Saturdays and Sundays. This weekly cycle is the dominant short-run seasonal signal.
-- **Autocorrelation:** The ACF decays slowly and displays prominent spikes at multiples of lag 7 (7, 14, 21, ...), confirming strong weekly periodicity. The PACF shows significant partial autocorrelations through approximately lag 3–4 before dropping toward zero, suggesting a low-order autoregressive structure in the non-seasonal component — consistent with the ARIMA component selected within TBATS.
-- **Temperature relationship:** The scatter plot and LOESS smoother reveal a positive, roughly monotone relationship between daily mean temperature and daily load, with load rising steeply above approximately 60 °F. This pattern is consistent with cooling-driven electricity consumption dominating summer demand, and motivates the potential use of temperature as an external predictor in regression-based models.
+-   **Trend:** The MSTL trend component reveals a broadly stable mean load over 2005–2011 with no strong long-run drift, though mild inter-year fluctuations are visible, likely reflecting weather variability across years rather than a structural change in consumption behavior.
+-   **Annual seasonality:** Load peaks sharply in summer (June–August), consistent with air-conditioning demand, and shows a secondary elevation in winter (December–February) attributable to heating and reduced daylight hours. The monthly boxplot confirms that July is among the highest-load months, making it a challenging forecast target with elevated and variable demand.
+-   **Weekly seasonality:** The day-of-week bar chart shows consistently higher load on weekdays (Monday–Friday) relative to weekends, reflecting reduced commercial and occupational activity on Saturdays and Sundays. This weekly cycle is the dominant short-run seasonal signal.
+-   **Autocorrelation:** The ACF decays slowly and displays prominent spikes at multiples of lag 7 (7, 14, 21, ...), confirming strong weekly periodicity. The PACF shows significant partial autocorrelations through approximately lag 3–4 before dropping toward zero, suggesting a low-order autoregressive structure in the non-seasonal component — consistent with the ARIMA component selected within TBATS.
+-   **Temperature relationship:** The scatter plot and LOESS smoother reveal a positive, roughly monotone relationship between daily mean temperature and daily load, with load rising steeply above approximately 60 °F. This pattern is consistent with cooling-driven electricity consumption dominating summer demand, and motivates the potential use of temperature as an external predictor in regression-based models.
 
 # Experimental Design
 
@@ -224,12 +224,12 @@ ggplot(daily, aes(x = temp_day, y = load_day)) +
 
 We followed the competition structure when partitioning the data:
 
-| Period | Dates | Purpose |
-|--------|-------|---------|
-| Training | 2005-01-01 to 2010-06-30 | Model fitting |
-| Validation | 2010-07-01 to 2010-07-31 | Hold-out evaluation (MAPE) |
-| Final training | 2005-01-01 to 2011-06-30 | Refit before final forecast |
-| Forecast horizon | 2011-07-01 to 2011-07-31 | Kaggle submission |
+| Period           | Dates                    | Purpose                     |
+|------------------|--------------------------|-----------------------------|
+| Training         | 2005-01-01 to 2010-06-30 | Model fitting               |
+| Validation       | 2010-07-01 to 2010-07-31 | Hold-out evaluation (MAPE)  |
+| Final training   | 2005-01-01 to 2011-06-30 | Refit before final forecast |
+| Forecast horizon | 2011-07-01 to 2011-07-31 | Kaggle submission           |
 
 ```{r train-validation-split}
 train_end <- as.Date("2010-06-30")
@@ -251,8 +251,8 @@ We began with TBATS to capture both weekly and annual seasonality simultaneously
 
 ## Evaluation Criteria
 
-- **Primary metric:** Mean Absolute Percentage Error (MAPE), consistent with the Kaggle leaderboard.
-- **Secondary metric:** Root Mean Squared Error (RMSE) for scale-sensitive comparison.
+-   **Primary metric:** Mean Absolute Percentage Error (MAPE), consistent with the Kaggle leaderboard.
+-   **Secondary metric:** Root Mean Squared Error (RMSE) for scale-sensitive comparison.
 
 ```{r metric-functions}
 mape_pct <- function(actual, predicted) {
@@ -269,10 +269,10 @@ Performance was assessed on the July 2010 hold-out window and cross-checked agai
 
 ## Reproducibility and Workflow
 
-- **GitHub** was used for code version control and collaboration.
-- **Kaggle** was used to submit and compare forecast outputs.
-- Individual model scripts (`scripts/forecast_TBATS.R`, and others) are also available in the repository.
-- Only the top five models are retained in the final knitted report.
+-   **GitHub** was used for code version control and collaboration.
+-   **Kaggle** was used to submit and compare forecast outputs.
+-   Individual model scripts (`scripts/forecast_TBATS.R`, and others) are also available in the repository.
+-   Only the top five models are retained in the final knitted report.
 
 # Modeling Results: Top 5 Models
 
@@ -339,106 +339,265 @@ TBATS achieved a validation MAPE of **`r round(mape_tbats, 2)`%** and RMSE of **
 
 ### Strengths and Limitations
 
-- **Strengths:** Captures dual seasonality (weekly + annual) without requiring manual specification; handles Box-Cox transformation automatically.
-- **Limitations:** Slower to fit than simpler models; less interpretable parameter structure.
+-   **Strengths:** Captures dual seasonality (weekly + annual) without requiring manual specification; handles Box-Cox transformation automatically.
+-   **Limitations:** Slower to fit than simpler models; less interpretable parameter structure.
 
----
+------------------------------------------------------------------------
 
-## Model 2: [Model Name]
+## Model 2: Seasonal Naive (as baseline) 
 
 ### Motivation
 
-[Why did you try this model?]
+Seasonal naive is used as part of our model because its simple and depends on the same time of the past model. We use daily data with and annual cycle, the forecast for July 1 2011 is observed from July 1 2010. Our result shows that despite it simplicity our Naive model shows a strong output and act as a benchmark.
 
 ### Specification
 
-[Describe the model form, settings, or features used.]
+We applied \`snaive()\` from the \`forecast\` package to an
+\`msts(seasonal.periods = c(7, 365.25))\` training object.
+The model requires no parameter estimation.
 
 ```{r model-2, eval=FALSE}
-# Insert code for Model 2
+
+y_tr_snaive   <- msts(train2010$load_day,
+                      seasonal.periods = c(7, 365.25))
+fit_snaive    <- snaive(y_tr_snaive, h = nrow(val2010))
+fc_snaive_val <- as.numeric(fit_snaive$mean)
+
+mape_snaive <- mape_pct(val2010$load_day, fc_snaive_val)
+rmse_snaive <- rmse_val(val2010$load_day, fc_snaive_val)
+
+cat(sprintf("Seasonal Naive -- Val MAPE: %.2f%%  |  Val RMSE: %.1f\n",
+            mape_snaive, rmse_snaive))
+
+model_scores <- rbind(model_scores, data.frame(
+  Model       = "Seasonal Naive",
+  Predictors  = "Load only",
+  Val_MAPE    = round(mape_snaive, 2),
+  Val_RMSE    = round(rmse_snaive, 1),
+  Kaggle_MAPE = "—"
+))
+
+data.frame(
+  date     = val2010$date,
+  observed = val2010$load_day,
+  forecast = fc_snaive_val
+) |>
+  pivot_longer(-date, names_to = "series", values_to = "load") |>
+  ggplot(aes(x = date, y = load, color = series)) +
+  geom_line() +
+  scale_color_manual(values = c(observed = "lightgrey",
+                                forecast = "blue")) +
+  labs(x = NULL, y = "Daily avg load (Wh)", color = NULL,
+       title = "Model 2: Seasonal Naive -- July 2010 validation") +
+  theme_minimal()
+
+
+
+
 ```
 
 ### Validation Performance
 
-[Report the key metric(s) and summarize performance.]
+Based on our Naive model results, it shows that we got a validation MAPE of 19.36% and RMSE of 950.4. This is the weakest result among all five models,
+confirming that more sophisticated approaches are needed to
+beat the baseline.
 
 ### Strengths and Limitations
 
-[Brief interpretation]
+Our seasonal Naive is simple and requires no parameter estimation, forecasting based on a single past value from one year ago. However, it cannot adapt to weather variations or year-to-year changes in load level, which explains its weakest performance among all five models.
 
----
+------------------------------------------------------------------------
 
-## Model 3: [Model Name]
+## Model 3: SARIMA
 
 ### Motivation
 
-[Why did you try this model?]
+For our third model, we try to incorporate what we found on our benchmark model to handle the seasonal correlation by use SARIMA extends ARIMA. The
+ACF plot showed strong spikes at multiples of lag 7, confirming a weekly seasonal pattern. Since auto.arima() cannot directly process msts() objects with multiple seasonal periods, we created a weekly ts() object (frequency = 7) to capture the dominant short-run pattern. Orders were selected automatically via AIC minimization.
 
 ### Specification
 
-[Describe the model form, settings, or features used.]
+We used auto.arima() with stepwise = TRUE and approximation =
+TRUE on a weekly ts object (frequency = 7). The function
+automatically selected ARIMA(4,0,1)(2,0,0)[7].
 
 ```{r model-3, eval=FALSE}
-# Insert code for Model 3
+y_tr_sarima <- ts(train2010$load_day, frequency = 7,
+                  start = c(2005, 1))
+
+fit_sarima    <- auto.arima(y_tr_sarima,
+                            stepwise      = TRUE,
+                            approximation = TRUE)
+print(fit_sarima)
+checkresiduals(fit_sarima)
+
+fc_sarima_val <- as.numeric(
+  forecast(fit_sarima, h = nrow(val2010))$mean)
+
+mape_sarima <- mape_pct(val2010$load_day, fc_sarima_val)
+rmse_sarima <- rmse_val(val2010$load_day, fc_sarima_val)
+
+cat(sprintf("SARIMA -- Val MAPE: %.2f%%  |  Val RMSE: %.1f\n",
+            mape_sarima, rmse_sarima))
+
+model_scores <- rbind(model_scores, data.frame(
+  Model       = "SARIMA(4,0,1)(2,0,0)[7]",
+  Predictors  = "Load only",
+  Val_MAPE    = round(mape_sarima, 2),
+  Val_RMSE    = round(rmse_sarima, 1),
+  Kaggle_MAPE = "0.1437"
+))
+
+data.frame(
+  date     = val2010$date,
+  observed = val2010$load_day,
+  forecast = fc_sarima_val
+) |>
+  pivot_longer(-date, names_to = "series", values_to = "load") |>
+  ggplot(aes(x = date, y = load, color = series)) +
+  geom_line() +
+  scale_color_manual(values = c(observed = "lightgrey",
+                                forecast = "blue")) +
+  labs(x = NULL, y = "Daily avg load (Wh)", color = NULL,
+       title = "Model 3: SARIMA -- July 2010 validation") +
+  theme_minimal()
 ```
 
 ### Validation Performance
 
-[Report the key metric(s) and summarize performance.]
+Now, in this model, our value does improve much better. SARIMA achieved a validation MAPE of 13.52% and RMSE of 690.4, improving upon the seasonal naive baseline. The Ljung-Box test (p = 0.081) confirmed residuals approximate white noise, indicating the model adequately captured the weekly autocorrelation structure.
 
 ### Strengths and Limitations
 
-[Brief interpretation]
+Our SARIMA model performs well in capturing weekly autocorrelation structure with orders selected automatically via AIC. However, it is limited to a single seasonal period (frequency = 7) and does not explicitly model the annual cycle, which may explain its weaker performance in July a month dominated by annual seasonality.
 
----
+------------------------------------------------------------------------
 
-## Model 4: [Model Name]
+## Model 4: STL + ETS
 
 ### Motivation
 
-[Why did you try this model?]
+We added this model to our list because removing both the weekly and
+annual seasonal components simultaneously. An ETS exponential
+smoothing model is then fitted to the seasonally adjusted series. This two stage approach handles multiple seasonality through STL while using ETS for the remaining trend and error structure.
 
 ### Specification
 
-[Describe the model form, settings, or features used.]
+We applied stlf() directly to the msts training object with
+seasonal.periods = c(7, 365.25). The function performs STL
+decomposition and ETS fitting in a single call, automatically
+selecting the best ETS model form.
 
 ```{r model-4, eval=FALSE}
-# Insert code for Model 4
+y_tr_stlf   <- msts(train2010$load_day,
+                    seasonal.periods = c(7, 365.25))
+fit_stlf    <- stlf(y_tr_stlf, h = nrow(val2010))
+fc_stlf_val <- as.numeric(fit_stlf$mean)
+
+mape_stlf <- mape_pct(val2010$load_day, fc_stlf_val)
+rmse_stlf <- rmse_val(val2010$load_day, fc_stlf_val)
+
+cat(sprintf("STL+ETS -- Val MAPE: %.2f%%  |  Val RMSE: %.1f\n",
+            mape_stlf, rmse_stlf))
+
+model_scores <- rbind(model_scores, data.frame(
+  Model       = "STL + ETS",
+  Predictors  = "Load only",
+  Val_MAPE    = round(mape_stlf, 2),
+  Val_RMSE    = round(rmse_stlf, 1),
+  Kaggle_MAPE = "—"
+))
+
+data.frame(
+  date     = val2010$date,
+  observed = val2010$load_day,
+  forecast = fc_stlf_val
+) |>
+  pivot_longer(-date, names_to = "series", values_to = "load") |>
+  ggplot(aes(x = date, y = load, color = series)) +
+  geom_line() +
+  scale_color_manual(values = c(observed = "lightgrey",
+                                forecast = "blue")) +
+  labs(x = NULL, y = "Daily avg load (Wh)", color = NULL,
+       title = "Model 4: STL+ETS -- July 2010 validation") +
+  theme_minimal()
 ```
 
 ### Validation Performance
 
-[Report the key metric(s) and summarize performance.]
+STL+ETS achieved a validation MAPE of 14.49% and RMSE of 705.2 on the July 2010 hold-out. While this model handles both weekly and annual seasonality, it did not perform as well as TBATS and SARIMA on this dataset.
 
 ### Strengths and Limitations
 
-[Brief interpretation]
+STL+ETS is not our best model compared to TBATS and SARIMA.
+However, it handles multiple seasonality well through
+decomposition and is robust to outliers through the ETS
+component.
 
----
+------------------------------------------------------------------------
 
-## Model 5: [Model Name]
+## Model 5: NNETAR
 
 ### Motivation
 
-[Why did you try this model?]
+We decided to add NNETAR to our list because NNETAR feeds lagged values of the series into a single-hidden-layer feed-forward neural network, capturing non-linear relationships between past and future observations. We included it to test whether non-linear patterns in daily load.
 
 ### Specification
 
-[Describe the model form, settings, or features used.]
+We applied nnetar() to the msts training object with set.seed(123) for reproducibility. The function automatically determined the number of input lags and hidden nodes to minimize in-sample error.
 
 ```{r model-5, eval=FALSE}
-# Insert code for Model 5
+set.seed(123)
+y_tr_nnetar   <- msts(train2010$load_day,
+                      seasonal.periods = c(7, 365.25))
+fit_nnetar    <- nnetar(y_tr_nnetar)
+print(fit_nnetar)
+
+fc_nnetar_val <- as.numeric(
+  forecast(fit_nnetar, h = nrow(val2010))$mean)
+
+mape_nnetar <- mape_pct(val2010$load_day, fc_nnetar_val)
+rmse_nnetar <- rmse_val(val2010$load_day, fc_nnetar_val)
+
+cat(sprintf("NNETAR -- Val MAPE: %.2f%%  |  Val RMSE: %.1f\n",
+            mape_nnetar, rmse_nnetar))
+
+model_scores <- rbind(model_scores, data.frame(
+  Model       = "NNETAR",
+  Predictors  = "Load only",
+  Val_MAPE    = round(mape_nnetar, 2),
+  Val_RMSE    = round(rmse_nnetar, 1),
+  Kaggle_MAPE = "—"
+))
+
+data.frame(
+  date     = val2010$date,
+  observed = val2010$load_day,
+  forecast = fc_nnetar_val
+) |>
+  pivot_longer(-date, names_to = "series", values_to = "load") |>
+  ggplot(aes(x = date, y = load, color = series)) +
+  geom_line() +
+  scale_color_manual(values = c(observed = "lightgrey",
+                                forecast = "blue")) +
+  labs(x = NULL, y = "Daily avg load (Wh)", color = NULL,
+       title = "Model 5: NNETAR -- July 2010 validation") +
+  theme_minimal()
 ```
 
 ### Validation Performance
 
-[Report the key metric(s) and summarize performance.]
+NNETAR achieved a validation MAPE of 14.95% and RMSE of 807.4 on the July 2010 hold-out. This is the weakest performance among all five models, indicating that the neural network overfit the training data and did not generalize well to the validation period.
 
 ### Strengths and Limitations
 
-[Brief interpretation]
+NNETAR is not our best model due to overfitting, where the
+model performed well on training data but poorly on the
+validation set. However, it does not require stationarity
+assumptions and is flexible in capturing non-linear patterns
+in the data.
 
----
+------------------------------------------------------------------------
 
 # Comparative Summary of the Five Models
 
@@ -458,10 +617,10 @@ model_scores |>
 
 ## Cross-Model Interpretation
 
-- **Seasonality capture:** TBATS explicitly models both weekly and annual seasonality. [Compare with Models 2–5 once finalized.]
-- **Responsiveness to short-term changes:** [Compare models' ability to track week-to-week variation in July.]
-- **Usefulness of weather covariates:** [If Models 3–5 incorporate temperature/humidity, comment on the gain.]
-- **Stability vs. flexibility:** [Simpler models may be more robust when validation data is short (31 days).]
+-   **Seasonality capture:** TBATS explicitly models both weekly and annual seasonality. [Compare with Models 2–5 once finalized.]
+-   **Responsiveness to short-term changes:** [Compare models' ability to track week-to-week variation in July.]
+-   **Usefulness of weather covariates:** [If Models 3–5 incorporate temperature/humidity, comment on the gain.]
+-   **Stability vs. flexibility:** [Simpler models may be more robust when validation data is short (31 days).]
 
 ## Final Model Selection
 
@@ -496,15 +655,15 @@ We selected **[Model name]** for the final submission because [brief justificati
 
 ## Limitations
 
-- **Short validation window:** A single 31-day July hold-out may not fully characterize model performance across seasons.
-- **Single-meter data:** Results may not generalize to aggregate or grid-level load.
-- **External predictors:** Only daily temperature and humidity averages were used; hour-by-hour or maximum temperature values might improve performance.
+-   **Short validation window:** A single 31-day July hold-out may not fully characterize model performance across seasons.
+-   **Single-meter data:** Results may not generalize to aggregate or grid-level load.
+-   **External predictors:** Only daily temperature and humidity averages were used; hour-by-hour or maximum temperature values might improve performance.
 
 ## Future Improvements
 
-- Dynamic harmonic regression with ARIMA errors (Fourier terms for annual seasonality within an ARIMA framework).
-- Neural network models (NNETAR) or gradient boosting with calendar and weather features.
-- Ensembling multiple models (weighted average of ARIMA and TBATS predictions).
+-   Dynamic harmonic regression with ARIMA errors (Fourier terms for annual seasonality within an ARIMA framework).
+-   Neural network models (NNETAR) or gradient boosting with calendar and weather features.
+-   Ensembling multiple models (weighted average of ARIMA and TBATS predictions).
 
 # Conclusion
 
@@ -514,10 +673,10 @@ This project developed and compared five time series forecasting models to predi
 
 ## References
 
-- Hyndman, R. J., & Athanasopoulos, G. (2021). *Forecasting: Principles and Practice* (3rd ed.). OTexts. <https://otexts.com/fpp3/>
-- R Core Team (2024). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing.
-- Hyndman, R., et al. (2024). *forecast: Forecasting Functions for Time Series and Linear Models*. R package version 8.x. <https://pkg.robjhyndman.com/forecast/>
-- [Additional course materials as appropriate]
+-   Hyndman, R. J., & Athanasopoulos, G. (2021). *Forecasting: Principles and Practice* (3rd ed.). OTexts. <https://otexts.com/fpp3/>
+-   R Core Team (2024). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing.
+-   Hyndman, R., et al. (2024). *forecast: Forecasting Functions for Time Series and Linear Models*. R package version 8.x. <https://pkg.robjhyndman.com/forecast/>
+-   [Additional course materials as appropriate]
 
 ## AI Use Disclosure
 
