@@ -48,4 +48,9 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# macOS
 .DS_Store
+**/.DS_Store
+
+# knitr figure output directories (regenerated on knit)
+*_files/
